@@ -193,7 +193,7 @@
       <section class="calendar-wrap" id="calendarPanel" aria-label="Full monthly calendar" inert>
         <div class="calendar-clip">
           <div class="calendar-inner">
-            <div class="range-status" id="rangeStatus" aria-live="polite">Hold a date, then tap another date to select a range</div>
+            <div class="range-status" id="rangeStatus" aria-live="polite">Tap the first date, then tap the last date to select a range</div>
             <div class="weekdays" aria-hidden="true">
               <span class="weekday">Mon</span><span class="weekday">Tue</span><span class="weekday">Wed</span>
               <span class="weekday">Thu</span><span class="weekday">Fri</span><span class="weekday">Sat</span><span class="weekday">Sun</span>
@@ -278,9 +278,9 @@
         const high = rangeStart && rangeEnd ? (rangeStart < rangeEnd ? rangeEnd : rangeStart) : null;
         const status = document.getElementById("rangeStatus");
         if (status) {
-          if (!rangeStart) status.textContent = "Hold a date, then tap another date to select a range";
+          if (!rangeStart) status.textContent = "Tap the first date, then tap the last date to select a range";
           else if (!rangeEnd) status.textContent = "Start: " + rangeStart + " — tap the end date";
-          else status.textContent = "Selected: " + (rangeStart < rangeEnd ? rangeStart : rangeEnd) + " → " + (rangeStart < rangeEnd ? rangeEnd : rangeStart) + " — hold another date to start over";
+          else status.textContent = "Selected: " + (rangeStart < rangeEnd ? rangeStart : rangeEnd) + " → " + (rangeStart < rangeEnd ? rangeEnd : rangeStart) + " — tap another date to start over";
         }
         grid.querySelectorAll(".day-cell").forEach(cell => {
           const date = cell.dataset.date;
@@ -423,7 +423,7 @@
           event.stopPropagation();
           return;
         }
-        if (editMode) selectDate(cell.dataset.date);
+        selectDate(cell.dataset.date);
       });
 
       const isExpanded = () => card.getAttribute("aria-expanded") === "true";
