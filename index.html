@@ -261,6 +261,13 @@
       let suppressNextClick = false;
       let pointerStartX = 0;
       let pointerStartY = 0;
+      let editMode = false;
+
+      function setEditMode(enabled) {
+        editMode = enabled;
+        card.classList.toggle("edit-mode", enabled);
+        if (enabled) setExpanded(true);
+      }
 
       function paintRange() {
         const low = rangeStart && rangeEnd ? (rangeStart < rangeEnd ? rangeStart : rangeEnd) : rangeStart;
@@ -320,24 +327,36 @@
 
       grid.addEventListener("contextmenu", event => event.preventDefault());
       grid.addEventListener("selectstart", event => event.preventDefault());
+
+      // Long-press a date numeral to enter date selection/edit mode.
+      // Long-press an amount while in that mode to edit its value.
       grid.addEventListener("pointerdown", event => {
-        // Editing is armed only when the press begins directly on the amount number.
-        const number = event.target.closest(".value");
-        const cell = number && number.closest(".day-cell[data-date]");
-        if (!number || !cell || !isExpanded() || event.button !== 0) return;
+        const cell = event.target.closest(".day-cell[data-date]");
+        if (!cell || event.button !== 0) return;
+        const dateNumber = event.target.closest(".num");
+        const amountNumber = event.target.closest(".value");
+        if (!dateNumber && !(amountNumber && editMode)) return;
+
+        if (holdTimer !== null) window.clearTimeout(holdTimer);
         holdPointerId = event.pointerId;
         holdStarted = false;
         suppressNextClick = false;
         pointerStartX = event.clientX;
         pointerStartY = event.clientY;
         const date = cell.dataset.date;
+
         holdTimer = window.setTimeout(() => {
           holdStarted = true;
           suppressNextClick = true;
           cell.classList.add("long-pressing");
-          editDateAmount(date);
-          cell.classList.remove("long-pressing");
-        }, 480);
+          if (dateNumber) {
+            setEditMode(true);
+            selectDate(date);
+          } else {
+            editDateAmount(date);
+          }
+          window.setTimeout(() => cell.classList.remove("long-pressing"), 180);
+        }, 550);
       });
 
       function finishPointer(event) {
@@ -346,15 +365,15 @@
         holdTimer = null;
         holdPointerId = null;
       }
-      grid.addEventListener("pointerup", finishPointer);
-      grid.addEventListener("pointercancel", finishPointer);
-      grid.addEventListener("pointermove", event => {
+      window.addEventListener("pointerup", finishPointer, true);
+      window.addEventListener("pointercancel", finishPointer, true);
+      window.addEventListener("pointermove", event => {
         if (holdPointerId !== event.pointerId || holdStarted) return;
-        if (Math.hypot(event.clientX - pointerStartX, event.clientY - pointerStartY) > 12) {
+        if (Math.hypot(event.clientX - pointerStartX, event.clientY - pointerStartY) > 14) {
           if (holdTimer !== null) window.clearTimeout(holdTimer);
           holdTimer = null;
         }
-      });
+      }, true);
 
       grid.addEventListener("click", event => {
         const cell = event.target.closest(".day-cell[data-date]");
@@ -365,7 +384,7 @@
           event.stopPropagation();
           return;
         }
-        selectDate(cell.dataset.date);
+        if (editMode) selectDate(cell.dataset.date);
       });
 
       const isExpanded = () => card.getAttribute("aria-expanded") === "true";
