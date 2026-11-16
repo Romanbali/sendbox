@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#050505">
+  <meta name="description" content="Minimal dark monthly performance calendar with animated expansion.">
+  <title>Monthly Performance — Nov 2026</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050505;
+      --panel: #080808;
+      --cell: #101010;
+      --cell-border: #202020;
+      --text: #f2f2f2;
+      --muted: #929292;
+      --yellow: #f4ed16;
+      --red: #ee695d;
+      --silver: #d7d7d7;
+      --line: #414141;
+      --ease: cubic-bezier(.2,.75,.25,1);
+    }
+    * { box-sizing: border-box; }
+    html { min-height: 100%; background: var(--bg); }
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-items: center;
+      padding: 28px 18px; background: radial-gradient(ellipse at 50% 45%, #0b080a 0%, #050505 62%);
+      color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { font: inherit; }
+    .card {
+      width: min(100%, 984px); padding: 26px 28px 28px;
+      border: 1px solid rgba(220,220,205,.72); border-radius: 23px;
+      background: linear-gradient(145deg, rgba(13,13,13,.98), rgba(3,3,3,.99));
+      box-shadow: 0 0 0 1px rgba(255,255,255,.045), 0 22px 80px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.035);
+      transition: padding .55s var(--ease);
+    }
+    .surface {
+      border-radius: 16px; padding: 12px 14px 14px;
+      background: linear-gradient(145deg, #0c0c0c, #080808);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.035);
+    }
+    .topline { display:flex; align-items:center; gap:18px; min-height:44px; }
+    .month { margin:0; font-size: clamp(23px, 3vw, 34px); line-height:1.1; font-weight:650; letter-spacing:-.045em; }
+    .spacer { flex:1; }
+    .total {
+      display:inline-flex; align-items:center; justify-content:center; min-width:104px;
+      padding:8px 14px; border-radius:12px; color:#f4f4f4; font-size:23px; font-weight:600;
+      letter-spacing:-.035em; background:linear-gradient(180deg,#303030,#242424);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 2px 12px rgba(0,0,0,.35);
+    }
+    .toggle {
+      width:42px; height:42px; display:grid; place-items:center; border:0; border-radius:10px;
+      color:#dedede; background:transparent; cursor:pointer; transition:background .2s ease, transform .55s var(--ease);
+      order:2;
+    }
+    .toggle:hover { background:#1a1a1a; }
+    .toggle:focus-visible { outline:2px solid var(--yellow); outline-offset:3px; }
+    .toggle svg { width:22px; height:22px; transition:transform .5s var(--ease); }
+    .card[aria-expanded="true"] .toggle svg { transform:rotate(180deg); }
+    .total { order:3; }
+    .progress {
+      display:flex; align-items:center; gap:10px; margin:24px 0 0;
+      min-height:12px;
+    }
+    .track {
+      height:5px; flex:1; min-width:0; overflow:hidden; border-radius:10px; background:var(--line);
+      box-shadow:inset 0 1px 2px rgba(0,0,0,.7);
+    }
+    .fill { width:32%; height:100%; border-radius:inherit; background:var(--yellow); box-shadow:0 0 7px rgba(244,237,22,.18); }
+    .amount { color:var(--yellow); font-size:17px; line-height:1; font-weight:550; white-space:nowrap; letter-spacing:-.025em; }
+    .amount.end { margin-left:0; }
+    .compact {
+      display:grid; grid-template-columns:repeat(10,minmax(0,1fr)); gap:9px;
+      margin-top:28px; overflow:hidden; max-height:110px; opacity:1; transform:translateY(0);
+      transition:max-height .55s var(--ease), opacity .32s ease, margin .55s var(--ease), transform .55s var(--ease);
+    }
+    .day-mini { min-width:0; text-align:center; padding:2px 0 0; transition:opacity .25s ease; }
+    .day-mini .date { display:block; color:#d8d8d8; font-size:15px; white-space:nowrap; }
+    .day-mini .value { display:block; margin-top:7px; font-size:17px; line-height:1.15; font-weight:550; white-space:nowrap; letter-spacing:-.025em; }
+    .positive { color:var(--yellow); }
+    .negative { color:var(--red); }
+    .neutral { color:#c6bfa4; }
+    .future { opacity:.38; }
+    .today .date { color:#fff; }
+    .today .date::after { content:""; display:block; width:4px; height:4px; margin:3px auto 0; border-radius:50%; background:var(--yellow); }
+    .calendar-wrap {
+      display:grid; grid-template-rows:0fr; opacity:0; transform:translateY(-8px);
+      transition:grid-template-rows .62s var(--ease), opacity .35s ease, transform .55s var(--ease), margin .55s var(--ease);
+      margin-top:0;
+    }
+    .calendar-clip { min-height:0; overflow:hidden; }
+    .calendar-inner { padding-top:28px; }
+    .weekdays, .calendar-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:8px; }
+    .weekdays { margin-bottom:10px; }
+    .weekday { text-align:center; color:#c6c6c6; font-size:15px; font-weight:550; padding:0 0 6px; }
+    .calendar-grid { grid-auto-rows:minmax(88px,1fr); }
+    .day-cell {
+      min-width:0; position:relative; display:flex; flex-direction:column; justify-content:space-between;
+      padding:10px 12px 13px; border-radius:15px; border:1px solid var(--cell-border);
+      background:linear-gradient(145deg,#121212,#0d0d0d);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.025), 0 2px 5px rgba(0,0,0,.2);
+      transition:background .25s ease, border-color .25s ease, opacity .25s ease, transform .25s ease;
+    }
+    .day-cell .num { color:#e7e7e7; font-size:16px; line-height:1; }
+    .day-cell .value { align-self:center; margin:auto 0 0; padding-top:10px; font-size:18px; line-height:1; font-weight:550; letter-spacing:-.035em; white-space:nowrap; }
+    .day-cell.outside { opacity:.48; }
+    .day-cell.future { opacity:.36; }
+    .day-cell.today { border-color:rgba(244,237,22,.55); background:linear-gradient(145deg,#17170e,#10100b); box-shadow:inset 0 0 0 1px rgba(244,237,22,.08); }
+    .day-cell.today .num { color:#fff; }
+    .card[aria-expanded="true"] .compact { max-height:0; opacity:0; margin-top:0; transform:translateY(-8px); pointer-events:none; }
+    .card[aria-expanded="true"] .calendar-wrap { grid-template-rows:1fr; opacity:1; transform:translateY(0); margin-top:0; }
+    .card[aria-expanded="true"] .calendar-inner { animation:calendar-in .65s var(--ease) both; }
+    @keyframes calendar-in { from { opacity:.35; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    @media (max-width:700px) {
+      body { padding:18px 10px; align-items:start; }
+      .card { padding:14px; border-radius:18px; }
+      .surface { padding:10px 9px 12px; }
+      .month { font-size:25px; }
+      .total { min-width:82px; padding:7px 10px; font-size:19px; }
+      .toggle { width:34px; height:38px; }
+      .progress { margin-top:20px; gap:7px; }
+      .amount { font-size:14px; }
+      .compact { gap:3px; margin-top:24px; }
+      .day-mini .date { font-size:11px; }
+      .day-mini .value { font-size:13px; margin-top:6px; }
+      .calendar-inner { padding-top:22px; }
+      .weekdays,.calendar-grid { gap:5px; }
+      .weekday { font-size:11px; }
+      .calendar-grid { grid-auto-rows:minmax(65px,1fr); }
+      .day-cell { padding:8px 6px 9px; border-radius:10px; }
+      .day-cell .num { font-size:13px; }
+      .day-cell .value { font-size:13px; }
+    }
+    @media (max-width:390px) {
+      .month { font-size:22px; }
+      .total { min-width:73px; font-size:17px; }
+      .day-mini .date { font-size:10px; }
+      .day-mini .value { font-size:11px; }
+      .day-cell .value { font-size:11px; }
+      .calendar-grid { grid-auto-rows:minmax(58px,1fr); }
+    }
+    @media (prefers-reduced-motion:reduce) {
+      *,*::before,*::after { scroll-behavior:auto!important; animation-duration:.01ms!important; transition-duration:.01ms!important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="card" id="performanceCard" aria-expanded="false">
+    <section class="surface" aria-label="Monthly performance calendar">
+      <header class="topline">
+        <h1 class="month">Nov 2026</h1>
+        <span class="spacer"></span>
+        <button class="toggle" id="calendarToggle" type="button" aria-label="Open full November calendar" aria-controls="calendarPanel" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 14 7-7 7 7" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="total" aria-label="Total">$2440</div>
+      </header>
+
+      <div class="progress" aria-label="Progress: 1400 of 2000">
+        <div class="track"><div class="fill"></div></div>
+        <span class="amount">$1400</span>
+        <div class="track"><div class="fill" style="width:0"></div></div>
+        <span class="amount end">$2000</span>
+      </div>
+
+      <section class="compact" id="compactDays" aria-label="Last ten days of November"></section>
+
+      <section class="calendar-wrap" id="calendarPanel" aria-label="Full monthly calendar" inert>
+        <div class="calendar-clip">
+          <div class="calendar-inner">
+            <div class="weekdays" aria-hidden="true">
+              <span class="weekday">Mon</span><span class="weekday">Tue</span><span class="weekday">Wed</span>
+              <span class="weekday">Thu</span><span class="weekday">Fri</span><span class="weekday">Sat</span><span class="weekday">Sun</span>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+  <script>
+    (() => {
+      const YEAR = 2026, MONTH = 10, TODAY = new Date(2026, 10, 16);
+      const values = {
+        "2026-10-26":12,"2026-10-27":-18,"2026-10-28":25,"2026-10-29":9,"2026-10-30":34,"2026-10-31":-11,
+        "2026-11-01":20,"2026-11-02":17,"2026-11-03":8,"2026-11-04":-14,"2026-11-05":22,"2026-11-06":11,
+        "2026-11-07":36,"2026-11-08":-9,"2026-11-09":27,"2026-11-10":5,"2026-11-11":48,"2026-11-12":-27,
+        "2026-11-13":30,"2026-11-14":-95,"2026-11-15":10,"2026-11-16":-42,"2026-11-17":78,"2026-11-18":-20,
+        "2026-11-19":63,"2026-11-20":15,"2026-11-21":-8,"2026-11-22":19,"2026-11-23":24,"2026-11-24":-17,
+        "2026-11-25":21,"2026-11-26":33,"2026-11-27":-12,"2026-11-28":40,"2026-11-29":18,"2026-11-30":29,
+        "2026-12-01":14,"2026-12-02":-6,"2026-12-03":27,"2026-12-04":-19,"2026-12-05":23,"2026-12-06":8
+      };
+      const pad = n => String(n).padStart(2, "0");
+      const key = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+      const amount = n => (n < 0 ? "-$" + Math.abs(n) : "$" + n);
+      const tone = n => n < 0 ? "negative" : n >= 20 ? "positive" : "neutral";
+      const isFuture = d => d > TODAY;
+      const compact = document.getElementById("compactDays");
+      const grid = document.getElementById("calendarGrid");
+      const card = document.getElementById("performanceCard");
+      const toggle = document.getElementById("calendarToggle");
+      const panel = document.getElementById("calendarPanel");
+
+      for (let day = 11; day <= 20; day++) {
+        const d = new Date(YEAR, MONTH, day), v = values[key(d)];
+        const item = document.createElement("div");
+        item.className = "day-mini" + (day === 16 ? " today" : "") + (isFuture(d) ? " future" : "");
+        item.innerHTML = '<span class="date">'+day+' Nov</span><span class="value '+tone(v)+'">'+amount(v)+'</span>';
+        compact.appendChild(item);
+      }
+
+      const first = new Date(YEAR, MONTH, 1);
+      const mondayOffset = (first.getDay() + 6) % 7;
+      const start = new Date(YEAR, MONTH, 1 - mondayOffset);
+      for (let i = 0; i < 42; i++) {
+        const d = new Date(start); d.setDate(start.getDate() + i);
+        const v = values[key(d)] ?? 0;
+        const outside = d.getMonth() !== MONTH;
+        const cell = document.createElement("div");
+        cell.className = "day-cell" + (outside ? " outside" : "") + (isFuture(d) ? " future" : "") + (key(d) === key(TODAY) ? " today" : "");
+        cell.setAttribute("aria-label", d.toLocaleDateString("en-US", {month:"long", day:"numeric", year:"numeric"}) + ", " + amount(v));
+        cell.innerHTML = '<span class="num">'+d.getDate()+'</span><span class="value '+tone(v)+'">'+amount(v)+'</span>';
+        grid.appendChild(cell);
+      }
+
+      function setExpanded(expanded) {
+        card.setAttribute("aria-expanded", String(expanded));
+        toggle.setAttribute("aria-expanded", String(expanded));
+        toggle.setAttribute("aria-label", expanded ? "Close full November calendar" : "Open full November calendar");
+        panel.inert = !expanded;
+      }
+      toggle.addEventListener("click", () => setExpanded(card.getAttribute("aria-expanded") !== "true"));
+      document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && card.getAttribute("aria-expanded") === "true") {
+          setExpanded(false); toggle.focus();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
