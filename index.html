@@ -83,7 +83,7 @@
       transition:max-height .55s var(--ease), opacity .32s ease, margin .55s var(--ease), transform .55s var(--ease);
     }
     .day-mini { min-width:0; text-align:center; padding:2px 0 0; transition:opacity .25s ease; }
-    .day-mini .date { display:block; color:#d8d8d8; font-size:14px; line-height:1.15; white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .day-mini .date { display:block; color:#d8d8d8; font-size:14px; line-height:1.15; white-space:nowrap; font-variant-numeric:tabular-nums; touch-action:none; -webkit-touch-callout:none; }
     .day-mini .value { display:block; margin-top:7px; font-size:clamp(11px,1.45vw,15px); line-height:1.15; font-weight:600; white-space:nowrap; letter-spacing:-.045em; font-variant-numeric:tabular-nums; }
     .positive { color:var(--yellow); }
     .negative { color:var(--red); }
@@ -108,7 +108,7 @@
       box-shadow:inset 0 1px 0 rgba(255,255,255,.025), 0 2px 5px rgba(0,0,0,.2);
       transition:background .25s ease, border-color .25s ease, opacity .25s ease, transform .25s ease;
     }
-    .day-cell .num { color:#e7e7e7; font-size:16px; line-height:1; }
+    .day-cell .num { color:#e7e7e7; font-size:16px; line-height:1; touch-action:none; -webkit-touch-callout:none; }
     .day-cell .value { align-self:center; margin:auto 0 0; padding-top:10px; font-size:18px; line-height:1; font-weight:550; letter-spacing:-.035em; white-space:nowrap; }
     .day-cell.outside { opacity:.48; }
     .day-cell.future { opacity:.36; }
@@ -334,9 +334,9 @@
 
       // One long-press handler for date numerals in both the compact strip and full grid.
       function armLongPress(event, source) {
-        const dateNumber = event.target.closest(source === "grid" ? ".num" : ".date");
+        const target = event.target instanceof Element ? event.target : event.target.parentElement;\n        if (!target) return;\n        const dateNumber = target.closest(source === "grid" ? ".num" : ".date");
         const cell = dateNumber && dateNumber.closest(source === "grid" ? ".day-cell[data-date]" : ".day-mini[data-date]");
-        const amountNumber = source === "grid" ? event.target.closest(".value") : null;
+        const amountNumber = source === "grid" ? target.closest(".value") : null;
         const amountCell = amountNumber && amountNumber.closest(".day-cell[data-date]");
         if ((!cell || !dateNumber) && !(amountCell && editMode)) return;
         if (event.button !== 0) return;
@@ -375,9 +375,10 @@
       }
       window.addEventListener("pointerup", finishPointer, true);
       window.addEventListener("pointercancel", finishPointer, true);
+      // Do not cancel a stationary press because of tiny touch-screen jitter.
       window.addEventListener("pointermove", event => {
         if (holdPointerId !== event.pointerId || holdStarted) return;
-        if (Math.hypot(event.clientX - pointerStartX, event.clientY - pointerStartY) > 14) {
+        if (Math.hypot(event.clientX - pointerStartX, event.clientY - pointerStartY) > 36) {
           if (holdTimer !== null) window.clearTimeout(holdTimer);
           holdTimer = null;
         }
