@@ -264,13 +264,18 @@
 
       const first = new Date(YEAR, MONTH, 1);
       const mondayOffset = (first.getDay() + 6) % 7;
-      const start = new Date(YEAR, MONTH, 1 - mondayOffset);
-      for (let i = 0; i < 42; i++) {
-        const d = new Date(start); d.setDate(start.getDate() + i);
+      // Keep weekday alignment, but render dates from this month only.
+      for (let i = 0; i < mondayOffset; i++) {
+        const spacer = document.createElement("div");
+        spacer.setAttribute("aria-hidden", "true");
+        grid.appendChild(spacer);
+      }
+      const daysInMonth = new Date(YEAR, MONTH + 1, 0).getDate();
+      for (let day = 1; day <= daysInMonth; day++) {
+        const d = new Date(YEAR, MONTH, day);
         const v = values[key(d)] ?? 0;
-        const outside = d.getMonth() !== MONTH;
         const cell = document.createElement("div");
-        cell.className = "day-cell" + (outside ? " outside" : "") + (isFuture(d) ? " future" : "") + (key(d) === key(TODAY) ? " today" : "");
+        cell.className = "day-cell" + (isFuture(d) ? " future" : "") + (key(d) === key(TODAY) ? " today" : "");
         cell.dataset.date = key(d);
         cell.setAttribute("aria-label", d.toLocaleDateString("en-US", {month:"long", day:"numeric", year:"numeric"}) + ", " + amount(v));
         cell.innerHTML = '<span class="num">'+d.getDate()+'</span><span class="value '+tone(v)+'">'+amount(v)+'</span>';
