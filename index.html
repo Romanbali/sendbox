@@ -266,6 +266,7 @@
       let pointerStartX = 0;
       let pointerStartY = 0;
       let editMode = false;
+      let selectingRangeEnd = false;
 
       function setEditMode(enabled) {
         editMode = enabled;
@@ -279,28 +280,28 @@
         const status = document.getElementById("rangeStatus");
         if (status) {
           if (!rangeStart) status.textContent = "Tap the first date, then tap the last date to select a range";
-          else if (!rangeEnd) status.textContent = "Start: " + rangeStart + " — tap the end date";
-          else status.textContent = "Selected: " + (rangeStart < rangeEnd ? rangeStart : rangeEnd) + " → " + (rangeStart < rangeEnd ? rangeEnd : rangeStart) + " — tap another date to start over";
+          else if (selectingRangeEnd) status.textContent = "Start: " + rangeStart + " — tap the end date";
+          else status.textContent = "Selected: " + (rangeStart < rangeEnd ? rangeStart : rangeEnd) + " → " + (rangeStart < rangeEnd ? rangeEnd : rangeStart) + " — hold a date in the range to edit its amount";
         }
         grid.querySelectorAll(".day-cell").forEach(cell => {
           const date = cell.dataset.date;
           cell.classList.remove("range-start", "range-end", "in-range");
           if (!rangeStart) return;
           if (date === low) cell.classList.add("range-start");
-          if (high && date === high) cell.classList.add("range-end");
+          if (high && date === high && !selectingRangeEnd) cell.classList.add("range-end");
           if (high && date > low && date < high) cell.classList.add("in-range");
         });
       }
 
       function selectDate(date) {
-        if (!rangeStart || rangeEnd) {
+        if (!editMode) return;
+        if (!selectingRangeEnd) {
           rangeStart = date;
-          rangeEnd = null;
-        } else if (date < rangeStart) {
-          rangeEnd = rangeStart;
-          rangeStart = date;
-        } else if (date > rangeStart) {
           rangeEnd = date;
+          selectingRangeEnd = true;
+        } else {
+          rangeEnd = date;
+          selectingRangeEnd = false;
         }
         paintRange();
       }
@@ -308,6 +309,7 @@
       function clearDateRange() {
         rangeStart = null;
         rangeEnd = null;
+        selectingRangeEnd = false;
         paintRange();
       }
 
@@ -362,7 +364,7 @@
           const date = dateCell.dataset.date;
           const low = rangeStart && rangeEnd ? (rangeStart < rangeEnd ? rangeStart : rangeEnd) : null;
           const high = rangeStart && rangeEnd ? (rangeStart < rangeEnd ? rangeEnd : rangeStart) : null;
-          if (editMode && low && date >= low && date <= high) return { cell: dateCell, date, kind: "amount" };
+          if (editMode && !selectingRangeEnd && low && date >= low && date <= high) return { cell: dateCell, date, kind: "amount" };
           return { cell: dateCell, date, kind: "date" };
         }
         if (amountCell && editMode) return { cell: amountCell, date: amountCell.dataset.date, kind: "amount" };
@@ -385,7 +387,10 @@
           if (info.kind === "date") {
             setEditMode(true);
             setExpanded(true);
-            selectDate(info.date);
+            rangeStart = info.date;
+            rangeEnd = info.date;
+            selectingRangeEnd = true;
+            paintRange();
           } else {
             editDateAmount(info.date);
           }
