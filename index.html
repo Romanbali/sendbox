@@ -129,6 +129,14 @@
     }
     .day-cell.in-range .num { color:#fff; }
     .day-cell.long-pressing { transform:scale(.97); border-color:var(--yellow); }
+    .editor-panel{margin-top:14px;padding:14px;border:1px solid #393939;border-radius:14px;background:#111}
+    .editor-panel[hidden]{display:none}.editor-title{display:flex;justify-content:space-between;margin-bottom:12px;font-weight:650}
+    .editor-panel label{display:block;color:#aaa;font-size:12px;margin-bottom:7px}
+    .editor-panel input{width:100%;padding:12px;border:1px solid #444;border-radius:9px;background:#080808;color:#fff;font:inherit;font-size:18px}
+    .editor-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+    .editor-actions button{padding:10px 14px;border:1px solid #555;border-radius:9px;background:#222;color:#fff}
+    .editor-actions .save{border-color:var(--yellow);background:var(--yellow);color:#080808;font-weight:700}
+
     .card.edit-mode .month::after { content:"  • SELECT DATES"; color:var(--yellow); font-size:11px; letter-spacing:.08em; vertical-align:middle; }
     .card.edit-mode .day-cell { cursor:crosshair; }
     .card[aria-expanded="true"] .compact { max-height:0; opacity:0; margin-top:0; transform:translateY(-8px); pointer-events:none; }
@@ -199,6 +207,12 @@
               <span class="weekday">Thu</span><span class="weekday">Fri</span><span class="weekday">Sat</span><span class="weekday">Sun</span>
             </div>
             <div class="calendar-grid" id="calendarGrid"></div>
+            <section class="editor-panel" id="calendarEditor" hidden>
+              <div class="editor-title"><span>Изменить сумму</span><span id="editorRangeLabel"></span></div>
+              <label for="editorAmount">Сумма для выбранного диапазона</label>
+              <input id="editorAmount" type="number" inputmode="decimal" step="1" placeholder="0">
+              <div class="editor-actions"><button type="button" id="editorCancel">Отмена</button><button type="button" class="save" id="editorSave">Сохранить сумму</button></div>
+            </section>
           </div>
         </div>
       </section>
@@ -302,6 +316,7 @@
         } else {
           rangeEnd = date;
           selectingRangeEnd = false;
+          updateEditorRange();
         }
         paintRange();
       }
@@ -313,38 +328,44 @@
         paintRange();
       }
 
+      const editor = document.getElementById("calendarEditor");
+      const editorAmount = document.getElementById("editorAmount");
+      const editorRangeLabel = document.getElementById("editorRangeLabel");
+      function dateKeysBetween(first,last) {
+        const lo = first < last ? first : last, hi = first < last ? last : first, out = [];
+        const d = new Date(lo + "T12:00:00"), finish = new Date(hi + "T12:00:00");
+        while (d <= finish) { out.push(key(d)); d.setDate(d.getDate()+1); }
+        return out;
+      }
+      function openCalendarEditor(date) {
+        setEditMode(true); setExpanded(true);
+        rangeStart = date; rangeEnd = date; selectingRangeEnd = true;
+        editor.hidden = false; editorAmount.value = String(values[date] ?? 0);
+        editorRangeLabel.textContent = date; paintRange();
+      }
+      function updateEditorRange() {
+        if (!rangeStart || !rangeEnd) return;
+        const dates = dateKeysBetween(rangeStart,rangeEnd), first = values[dates[0]] ?? 0;
+        editorAmount.value = dates.every(d => (values[d] ?? 0) === first) ? String(first) : "";
+        editorRangeLabel.textContent = dates[0] + " — " + dates[dates.length-1];
+      }
+      function closeCalendarEditor() {
+        editor.hidden = true; setEditMode(false); clearDateRange();
+      }
       function editDateAmount(date) {
-        const hasRange = rangeStart && rangeEnd;
-        const low = hasRange ? (rangeStart < rangeEnd ? rangeStart : rangeEnd) : date;
-        const high = hasRange ? (rangeStart < rangeEnd ? rangeEnd : rangeStart) : date;
-        const inRange = hasRange && date >= low && date <= high;
-        const targets = inRange ? Object.keys(values).filter(day => day >= low && day <= high) : [date];
-        const current = values[date] ?? 0;
-        const label = inRange
-          ? "Set the same amount for all " + targets.length + " selected dates (" + low + " to " + high + "):"
-          : "Edit amount for " + date + " (negative number = loss):";
-        const input = window.prompt(label, String(current));
-        if (input === null || input.trim() === "") return;
-        const number = Number(input.replace(/[$,\s]/g, ""));
-        if (!Number.isFinite(number)) {
-          window.alert("Please enter a valid number, such as 48 or -27.");
-          return;
-        }
-        targets.forEach(day => {
+        if (!rangeStart || !rangeEnd) return;
+        editor.hidden = false; updateEditorRange(); editorAmount.focus();
+      }
+      function saveCalendarEdit() {
+        const raw = editorAmount.value.trim(), number = Number(raw);
+        if (!raw || !Number.isFinite(number)) { editorAmount.focus(); return; }
+        dateKeysBetween(rangeStart,rangeEnd).forEach(day => {
           values[day] = Math.round(number);
-          const cell = grid.querySelector('.day-cell[data-date="' + day + '"]');
-          if (cell) {
-            const value = cell.querySelector(".value");
-            value.textContent = amount(values[day]);
-            value.className = "value " + tone(values[day]);
-          }
-          const mini = compact.querySelector('.day-mini[data-date="' + day + '"]');
-          if (mini) {
-            const value = mini.querySelector(".value");
-            value.textContent = amount(values[day]);
-            value.className = "value " + tone(values[day]);
-          }
+          document.querySelectorAll('[data-date="' + day + '"] .value').forEach(el => {
+            el.textContent = amount(values[day]); el.className = "value " + tone(values[day]);
+          });
         });
+        closeCalendarEditor();
       }
 
       grid.addEventListener("contextmenu", event => event.preventDefault());
@@ -384,16 +405,8 @@
           holdStarted = true;
           suppressClickUntil = Date.now() + 900;
           info.cell.classList.add("long-pressing");
-          if (info.kind === "date") {
-            setEditMode(true);
-            setExpanded(true);
-            rangeStart = info.date;
-            rangeEnd = info.date;
-            selectingRangeEnd = true;
-            paintRange();
-          } else {
-            editDateAmount(info.date);
-          }
+          if (info.kind === "date") openCalendarEditor(info.date);
+          else editDateAmount(info.date);
           window.setTimeout(() => info.cell.classList.remove("long-pressing"), 250);
         }, 650);
       }
@@ -447,6 +460,8 @@
         if (editMode) selectDate(cell.dataset.date);
       });
 
+      document.getElementById("editorCancel").addEventListener("click", closeCalendarEditor);
+      document.getElementById("editorSave").addEventListener("click", saveCalendarEdit);
       const isExpanded = () => card.getAttribute("aria-expanded") === "true";
       const toggleCalendar = () => setExpanded(!isExpanded());
 
