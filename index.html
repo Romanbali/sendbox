@@ -172,39 +172,6 @@
       .day-cell .value { font-size:11px; }
       .calendar-grid { grid-auto-rows:minmax(58px,1fr); }
     }
-
-    .finance-panel{width:min(100%,984px);margin:18px auto 0;padding:20px 22px;border:1px solid rgba(220,220,205,.55);border-radius:20px;background:linear-gradient(145deg,#101010,#070707);box-shadow:0 16px 48px rgba(0,0,0,.3)}
-    .finance-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-    .finance-balance-label{color:#999;font-size:12px;text-transform:uppercase;letter-spacing:.09em;font-weight:700}
-    .finance-balance{font-size:clamp(25px,5vw,36px);font-weight:750;letter-spacing:-.045em;color:#f4ed16;font-variant-numeric:tabular-nums}
-    .finance-breakdown{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;color:#aaa;font-size:12px}
-    .finance-breakdown strong{color:#eee;font-variant-numeric:tabular-nums}
-    .finance-actions{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;margin-top:18px}
-    .finance-actions input,.finance-date{min-width:0;padding:11px 12px;border:1px solid #383838;border-radius:10px;background:#151515;color:#f2f2f2;font:inherit}
-    .finance-actions button,.backup-actions button{padding:11px 15px;border:1px solid #454545;border-radius:10px;background:#1a1a1a;color:#eee;font:inherit;font-weight:650;cursor:pointer}
-    .finance-actions .deposit-action{border-color:#a9a300;background:#f4ed16;color:#080808}
-    .finance-actions .withdraw-action{border-color:#713a36;color:#ff8b80}
-    .finance-date-wrap{display:flex;gap:8px;margin-top:9px;align-items:center;color:#999;font-size:12px}
-    .finance-date{padding:7px 9px;font-size:13px}
-    .history-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:24px 0 12px;font-size:18px;font-weight:700}
-    .history-totals{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
-    .history-total{padding:11px 12px;border-radius:11px;background:#151515;color:#aaa;font-size:12px}
-    .history-total strong{display:block;margin-top:4px;font-size:17px;color:#62d58c;font-variant-numeric:tabular-nums}
-    .history-total.withdraw strong{color:#ff8278}
-    .finance-history{display:grid;gap:7px}
-    .finance-history-row{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px 11px;border:1px solid #252525;border-radius:12px;background:#101010}
-    .finance-history-icon{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#173323;color:#68dc91;font-size:20px;font-weight:700}
-    .finance-history-row.withdraw .finance-history-icon{background:#351d1b;color:#ff8b80}
-    .finance-history-date{display:block;color:#999;font-size:11px}
-    .finance-history-type{display:block;margin-top:3px;color:#eee;font-size:13px;font-weight:650}
-    .finance-history-amount{font-size:15px;font-weight:750;color:#68dc91;white-space:nowrap;font-variant-numeric:tabular-nums}
-    .finance-history-row.withdraw .finance-history-amount{color:#ff8b80}
-    .finance-empty{padding:18px 10px;text-align:center;color:#777;font-size:13px}
-    .backup-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid #292929}
-    .backup-actions button{font-size:12px}
-    .backup-status{min-height:16px;margin-top:8px;color:#999;font-size:11px}
-    @media(max-width:520px){.finance-panel{margin-top:12px;padding:15px 13px;border-radius:16px}.finance-actions{grid-template-columns:1fr 1fr}.finance-actions input{grid-column:1/-1}.finance-actions button{padding:10px 8px}.finance-history-row{grid-template-columns:30px minmax(0,1fr) auto;gap:8px}.finance-history-amount{font-size:13px}}
-
     @media (prefers-reduced-motion:reduce) {
       *,*::before,*::after { scroll-behavior:auto!important; animation-duration:.01ms!important; transition-duration:.01ms!important; }
     }
@@ -219,7 +186,7 @@
         <button class="toggle" id="calendarToggle" type="button" aria-label="Open full November calendar" aria-controls="calendarPanel" aria-expanded="false">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 14 7-7 7 7" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
-        <div class="total" id="calendar-total" aria-label="Total">$500</div>
+        <div class="total" aria-label="Total">$2440</div>
       </header>
 
       <div class="progress" aria-label="Progress: 1400 of 2000">
@@ -250,31 +217,6 @@
         </div>
       </section>
     </section>
-
-    <section class="finance-panel" aria-label="Депозит и история операций">
-      <div class="finance-top">
-        <div><div class="finance-balance-label">Текущий депозит</div><div class="finance-balance" id="finance-balance">$500.00</div></div>
-        <div class="finance-breakdown"><span>Старт: <strong id="finance-base">$500.00</strong></span><span>Результат календаря: <strong id="finance-calendar-total">$0.00</strong></span></div>
-      </div>
-      <div class="finance-actions">
-        <input id="finance-amount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="Сумма операции" aria-label="Сумма операции">
-        <button class="deposit-action" id="finance-deposit" type="button">＋ Пополнить</button>
-        <button class="withdraw-action" id="finance-withdraw" type="button">− Вывести</button>
-      </div>
-      <div class="finance-date-wrap">Дата операции <input class="finance-date" id="finance-date" type="date"></div>
-      <div class="history-heading"><span>История пополнений и выводов</span></div>
-      <div class="history-totals">
-        <div class="history-total">Всего пополнено<strong id="finance-deposits">$0.00</strong></div>
-        <div class="history-total withdraw">Всего выведено<strong id="finance-withdrawals">$0.00</strong></div>
-      </div>
-      <div class="finance-history" id="finance-history"></div>
-      <div class="backup-actions">
-        <button id="finance-export" type="button">Экспорт данных</button>
-        <button id="finance-import" type="button">Импорт данных</button>
-        <input id="finance-file" type="file" accept="application/json,.json" hidden>
-      </div>
-      <div class="backup-status" id="finance-status" role="status" aria-live="polite"></div>
-    </section>
   </main>
   <script>
     (() => {
@@ -300,18 +242,6 @@
       } catch (error) {
         console.warn("Could not restore calendar values", error);
       }
-
-      const financeBaseKey = "sendbox-deposit-base-v1";
-      const financeHistoryKey = "sendbox-deposit-history-v1";
-      let financeBase = 500;
-      let financeHistory = [];
-      try {
-        const storedBase = localStorage.getItem(financeBaseKey);
-        if (storedBase !== null && Number.isFinite(Number(storedBase)) && Number(storedBase) >= 0) financeBase = Number(storedBase);
-        const storedHistory = JSON.parse(localStorage.getItem(financeHistoryKey) || "[]");
-        if (Array.isArray(storedHistory)) financeHistory = storedHistory.filter(item => item && (item.type === "deposit" || item.type === "withdrawal") && typeof item.date === "string" && Number.isFinite(Number(item.amount)) && Number(item.amount) > 0);
-      } catch (error) { console.warn("Could not restore deposit data", error); }
-
       const pad = n => String(n).padStart(2, "0");
       const key = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
       const amount = n => (n < 0 ? "-$" + Math.abs(n) : "$" + n);
@@ -604,101 +534,6 @@
         if (!grid.contains(event.target) && !editor.contains(event.target)) clearDateRange();
         if (isExpanded() && !card.contains(event.target)) setExpanded(false);
       });
-
-      const financeBalance = document.getElementById("finance-balance");
-      const financeBaseLabel = document.getElementById("finance-base");
-      const financeCalendarTotal = document.getElementById("finance-calendar-total");
-      const financeDeposits = document.getElementById("finance-deposits");
-      const financeWithdrawals = document.getElementById("finance-withdrawals");
-      const financeHistoryList = document.getElementById("finance-history");
-      const financeAmount = document.getElementById("finance-amount");
-      const financeDate = document.getElementById("finance-date");
-      const financeStatus = document.getElementById("finance-status");
-      const financeMoney = value => "$" + Number(value).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
-      financeDate.value = key(TODAY);
-      function getCalendarContribution() {
-        return Math.round(Object.entries(values).reduce((sum,[date,value]) => date <= key(TODAY) && Number.isFinite(Number(value)) ? sum + Number(value) : sum,0)*100)/100;
-      }
-      function getFinanceTransactionTotal() {
-        return financeHistory.filter(item => item.date <= key(TODAY)).reduce((sum,item) => sum + (item.type === "deposit" ? Number(item.amount) : -Number(item.amount)),0);
-      }
-      function getFinanceBalance() {
-        return Math.round((financeBase + getCalendarContribution() + getFinanceTransactionTotal())*100)/100;
-      }
-      function saveFinanceData() {
-        localStorage.setItem(financeBaseKey,String(financeBase));
-        localStorage.setItem(financeHistoryKey,JSON.stringify(financeHistory));
-      }
-      function renderFinance() {
-        const calendarTotal = getCalendarContribution();
-        const balance = getFinanceBalance();
-        financeBalance.textContent = financeMoney(balance);
-        financeBaseLabel.textContent = financeMoney(financeBase);
-        financeCalendarTotal.textContent = (calendarTotal < 0 ? "−" : "+") + financeMoney(Math.abs(calendarTotal));
-        document.getElementById("calendar-total").textContent = financeMoney(balance);
-        financeDeposits.textContent = financeMoney(financeHistory.filter(x=>x.type==="deposit").reduce((s,x)=>s+Number(x.amount),0));
-        financeWithdrawals.textContent = "−" + financeMoney(financeHistory.filter(x=>x.type==="withdrawal").reduce((s,x)=>s+Number(x.amount),0));
-        financeHistoryList.innerHTML = "";
-        financeHistory.slice().sort((a,b)=>b.date.localeCompare(a.date)||(Number(b.createdAt)||0)-(Number(a.createdAt)||0)).forEach(item=>{
-          const row=document.createElement("div");
-          row.className="finance-history-row"+(item.type==="withdrawal"?" withdraw":"");
-          const icon=document.createElement("span");icon.className="finance-history-icon";icon.textContent=item.type==="deposit"?"+":"−";
-          const details=document.createElement("div");
-          const date=document.createElement("time");date.className="finance-history-date";date.dateTime=item.date;
-          date.textContent=new Date(item.date+"T12:00:00").toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"});
-          const type=document.createElement("span");type.className="finance-history-type";type.textContent=item.type==="deposit"?"Пополнение":"Вывод";
-          details.append(date,type);
-          const amount=document.createElement("strong");amount.className="finance-history-amount";
-          amount.textContent=(item.type==="deposit"?"+":"−")+financeMoney(item.amount);
-          row.append(icon,details,amount);financeHistoryList.appendChild(row);
-        });
-        if(!financeHistory.length){const empty=document.createElement("div");empty.className="finance-empty";empty.textContent="Операций пока нет";financeHistoryList.appendChild(empty);}
-      }
-      function addFinanceTransaction(type) {
-        const amount=Number(financeAmount.value), date=financeDate.value;
-        if(!Number.isFinite(amount)||amount<=0||!date){financeStatus.textContent="Укажи корректную сумму и дату операции.";return;}
-        if(type==="withdrawal" && date<=key(TODAY) && amount>getFinanceBalance()){financeStatus.textContent="Нельзя вывести больше текущего депозита.";return;}
-        financeHistory.push({id:"sendbox-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),date,type,amount:Math.round(amount*100)/100,createdAt:Date.now()});
-        try{saveFinanceData();}catch(error){financeHistory.pop();financeStatus.textContent="Не удалось сохранить операцию в браузере.";return;}
-        financeAmount.value="";financeStatus.textContent=type==="deposit"?"Пополнение добавлено.":"Вывод добавлен.";renderFinance();
-      }
-      document.getElementById("finance-deposit").addEventListener("click",()=>addFinanceTransaction("deposit"));
-      document.getElementById("finance-withdraw").addEventListener("click",()=>addFinanceTransaction("withdrawal"));
-      document.getElementById("finance-export").addEventListener("click",()=>{
-        const backup={format:"sendbox-calendar-backup",version:1,createdAt:new Date().toISOString(),values,financeBase,financeHistory};
-        const blob=new Blob([JSON.stringify(backup,null,2)],{type:"application/json"});
-        const url=URL.createObjectURL(blob);const link=document.createElement("a");
-        link.href=url;link.download="sendbox-backup-"+key(TODAY)+".json";document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(url);
-        financeStatus.textContent="Резервная копия экспортирована.";
-      });
-      const financeFile=document.getElementById("finance-file");
-      document.getElementById("finance-import").addEventListener("click",()=>financeFile.click());
-      financeFile.addEventListener("change",()=>{
-        const file=financeFile.files&&financeFile.files[0];if(!file)return;
-        const reader=new FileReader();
-        reader.onload=()=>{
-          try{
-            const backup=JSON.parse(String(reader.result||""));
-            if(!backup||backup.format!=="sendbox-calendar-backup"||backup.version!==1||!backup.values||typeof backup.values!=="object"||Array.isArray(backup.values)||!Number.isFinite(Number(backup.financeBase))||Number(backup.financeBase)<0||!Array.isArray(backup.financeHistory))throw new Error("Файл не является резервной копией Sendbox.");
-            const validValues={};
-            Object.entries(backup.values).forEach(([date,value])=>{if(/^\d{4}-\d{2}-\d{2}$/.test(date)&&Number.isFinite(Number(value)))validValues[date]=Number(value);});
-            const validHistory=backup.financeHistory.filter(item=>item&&(item.type==="deposit"||item.type==="withdrawal")&&/^\d{4}-\d{2}-\d{2}$/.test(item.date)&&Number.isFinite(Number(item.amount))&&Number(item.amount)>0);
-            if(!window.confirm("Заменить календарь, депозит и историю данными из резервной копии?"))return;
-            Object.keys(values).forEach(date=>delete values[date]);Object.assign(values,validValues);
-            financeBase=Number(backup.financeBase);financeHistory=validHistory;
-            localStorage.setItem(valuesStorageKey,JSON.stringify(values));saveFinanceData();
-            renderFinance();
-            document.querySelectorAll(".day-cell[data-date]").forEach(cell=>{const v=values[cell.dataset.date]??0;const label=cell.querySelector(".value");if(label){label.textContent=amount(v);label.className="value "+tone(v);}});
-            document.querySelectorAll(".day-mini[data-date]").forEach(cell=>{const v=values[cell.dataset.date]??0;const label=cell.querySelector(".value");if(label){label.textContent=amount(v);label.className="value "+tone(v);}});
-            financeStatus.textContent="Данные успешно импортированы.";
-          }catch(error){financeStatus.textContent=error.message||"Не удалось импортировать файл.";}
-          finally{financeFile.value="";}
-        };
-        reader.onerror=()=>{financeStatus.textContent="Не удалось прочитать файл.";financeFile.value="";};
-        reader.readAsText(file);
-      });
-      renderFinance();
-
       document.addEventListener("keydown", event => {
         if (event.key === "Escape" && card.getAttribute("aria-expanded") === "true") {
           setExpanded(false); toggle.focus();
