@@ -332,56 +332,78 @@
       compact.addEventListener("contextmenu", event => event.preventDefault());
       compact.addEventListener("selectstart", event => event.preventDefault());
 
-      // One long-press handler for date numerals in both the compact strip and full grid.
-      function armLongPress(event, source) {
-        const target = event.target instanceof Element ? event.target : event.target.parentElement;\n        if (!target) return;\n        const dateNumber = target.closest(source === "grid" ? ".num" : ".date");
-        const cell = dateNumber && dateNumber.closest(source === "grid" ? ".day-cell[data-date]" : ".day-mini[data-date]");
-        const amountNumber = source === "grid" ? target.closest(".value") : null;
+      // Long press: use native touch events on phones and pointer events for mouse.
+      function resolveLongPressTarget(target, source) {
+        const el = target instanceof Element ? target : target && target.parentElement;
+        if (!el) return null;
+        const dateNumber = el.closest(source === "grid" ? ".num" : ".date");
+        const dateCell = dateNumber && dateNumber.closest(source === "grid" ? ".day-cell[data-date]" : ".day-mini[data-date]");
+        const amountNumber = source === "grid" ? el.closest(".value") : null;
         const amountCell = amountNumber && amountNumber.closest(".day-cell[data-date]");
-        if ((!cell || !dateNumber) && !(amountCell && editMode)) return;
-        if (event.button !== 0) return;
+        if (dateCell) return { cell: dateCell, date: dateCell.dataset.date, kind: "date" };
+        if (amountCell && editMode) return { cell: amountCell, date: amountCell.dataset.date, kind: "amount" };
+        return null;
+      }
 
+      function beginHold(target, source, x, y, pointerId) {
+        const info = resolveLongPressTarget(target, source);
+        if (!info) return;
         if (holdTimer !== null) window.clearTimeout(holdTimer);
-        holdPointerId = event.pointerId;
+        holdPointerId = pointerId;
         holdStarted = false;
         suppressNextClick = false;
-        pointerStartX = event.clientX;
-        pointerStartY = event.clientY;
-        const targetCell = cell || amountCell;
-        const date = targetCell.dataset.date;
-
+        pointerStartX = x;
+        pointerStartY = y;
         holdTimer = window.setTimeout(() => {
           holdStarted = true;
           suppressNextClick = true;
-          targetCell.classList.add("long-pressing");
-          if (dateNumber) {
+          info.cell.classList.add("long-pressing");
+          if (info.kind === "date") {
             setEditMode(true);
             setExpanded(true);
-            selectDate(date);
+            selectDate(info.date);
           } else {
-            editDateAmount(date);
+            editDateAmount(info.date);
           }
-          window.setTimeout(() => targetCell.classList.remove("long-pressing"), 180);
-        }, 500);
+          window.setTimeout(() => info.cell.classList.remove("long-pressing"), 250);
+        }, 650);
       }
-      grid.addEventListener("pointerdown", event => armLongPress(event, "grid"));
-      compact.addEventListener("pointerdown", event => armLongPress(event, "compact"));
 
-      function finishPointer(event) {
-        if (holdPointerId !== event.pointerId) return;
+      function cancelHold(pointerId) {
+        if (holdPointerId !== pointerId) return;
         if (holdTimer !== null) window.clearTimeout(holdTimer);
         holdTimer = null;
         holdPointerId = null;
       }
-      window.addEventListener("pointerup", finishPointer, true);
-      window.addEventListener("pointercancel", finishPointer, true);
-      // Do not cancel a stationary press because of tiny touch-screen jitter.
+
+      // Touch events are used explicitly because some mobile browsers interrupt
+      // pointer-based long presses while handling scrolling/callout gestures.
+      function attachLongPress(element, source) {
+        element.addEventListener("touchstart", event => {
+          if (event.touches.length !== 1) return;
+          const touch = event.touches[0];
+          beginHold(event.target, source, touch.clientX, touch.clientY, "touch");
+        }, {passive:true});
+        element.addEventListener("touchmove", event => {
+          if (holdPointerId !== "touch" || holdStarted || !event.touches.length) return;
+          const touch = event.touches[0];
+          if (Math.hypot(touch.clientX - pointerStartX, touch.clientY - pointerStartY) > 30) cancelHold("touch");
+        }, {passive:true});
+        element.addEventListener("touchend", () => cancelHold("touch"), {passive:true});
+        element.addEventListener("touchcancel", () => cancelHold("touch"), {passive:true});
+        element.addEventListener("pointerdown", event => {
+          if (event.pointerType === "touch" || event.button !== 0) return;
+          beginHold(event.target, source, event.clientX, event.clientY, event.pointerId);
+        });
+      }
+      attachLongPress(grid, "grid");
+      attachLongPress(compact, "compact");
+
+      window.addEventListener("pointerup", event => cancelHold(event.pointerId), true);
+      window.addEventListener("pointercancel", event => cancelHold(event.pointerId), true);
       window.addEventListener("pointermove", event => {
         if (holdPointerId !== event.pointerId || holdStarted) return;
-        if (Math.hypot(event.clientX - pointerStartX, event.clientY - pointerStartY) > 36) {
-          if (holdTimer !== null) window.clearTimeout(holdTimer);
-          holdTimer = null;
-        }
+        if (Math.hypot(event.clientX - pointerStartX, event.clientY - pointerStartY) > 30) cancelHold(event.pointerId);
       }, true);
 
       grid.addEventListener("click", event => {
