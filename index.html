@@ -128,6 +128,8 @@
     }
     .day-cell.in-range .num { color:#fff; }
     .day-cell.long-pressing { transform:scale(.97); border-color:var(--yellow); }
+    .card.edit-mode .month::after { content:"  • SELECT DATES"; color:var(--yellow); font-size:11px; letter-spacing:.08em; vertical-align:middle; }
+    .card.edit-mode .day-cell { cursor:crosshair; }
     .card[aria-expanded="true"] .compact { max-height:0; opacity:0; margin-top:0; transform:translateY(-8px); pointer-events:none; }
     .card[aria-expanded="true"] .calendar-wrap { grid-template-rows:1fr; opacity:1; transform:translateY(0); margin-top:0; }
     .card[aria-expanded="true"] .calendar-inner { animation:calendar-in .65s var(--ease) both; }
@@ -327,15 +329,17 @@
 
       grid.addEventListener("contextmenu", event => event.preventDefault());
       grid.addEventListener("selectstart", event => event.preventDefault());
+      compact.addEventListener("contextmenu", event => event.preventDefault());
+      compact.addEventListener("selectstart", event => event.preventDefault());
 
-      // Long-press a date numeral to enter date selection/edit mode.
-      // Long-press an amount while in that mode to edit its value.
-      grid.addEventListener("pointerdown", event => {
-        const cell = event.target.closest(".day-cell[data-date]");
-        if (!cell || event.button !== 0) return;
-        const dateNumber = event.target.closest(".num");
-        const amountNumber = event.target.closest(".value");
-        if (!dateNumber && !(amountNumber && editMode)) return;
+      // One long-press handler for date numerals in both the compact strip and full grid.
+      function armLongPress(event, source) {
+        const dateNumber = event.target.closest(source === "grid" ? ".num" : ".date");
+        const cell = dateNumber && dateNumber.closest(source === "grid" ? ".day-cell[data-date]" : ".day-mini[data-date]");
+        const amountNumber = source === "grid" ? event.target.closest(".value") : null;
+        const amountCell = amountNumber && amountNumber.closest(".day-cell[data-date]");
+        if ((!cell || !dateNumber) && !(amountCell && editMode)) return;
+        if (event.button !== 0) return;
 
         if (holdTimer !== null) window.clearTimeout(holdTimer);
         holdPointerId = event.pointerId;
@@ -343,21 +347,25 @@
         suppressNextClick = false;
         pointerStartX = event.clientX;
         pointerStartY = event.clientY;
-        const date = cell.dataset.date;
+        const targetCell = cell || amountCell;
+        const date = targetCell.dataset.date;
 
         holdTimer = window.setTimeout(() => {
           holdStarted = true;
           suppressNextClick = true;
-          cell.classList.add("long-pressing");
+          targetCell.classList.add("long-pressing");
           if (dateNumber) {
             setEditMode(true);
+            setExpanded(true);
             selectDate(date);
           } else {
             editDateAmount(date);
           }
-          window.setTimeout(() => cell.classList.remove("long-pressing"), 180);
-        }, 550);
-      });
+          window.setTimeout(() => targetCell.classList.remove("long-pressing"), 180);
+        }, 500);
+      }
+      grid.addEventListener("pointerdown", event => armLongPress(event, "grid"));
+      compact.addEventListener("pointerdown", event => armLongPress(event, "compact"));
 
       function finishPointer(event) {
         if (holdPointerId !== event.pointerId) return;
