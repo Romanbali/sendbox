@@ -227,6 +227,7 @@
         const d = new Date(YEAR, MONTH, day), v = values[key(d)];
         const item = document.createElement("div");
         item.className = "day-mini" + (day === 16 ? " today" : "") + (isFuture(d) ? " future" : "");
+        item.dataset.date = key(d);
         item.innerHTML = '<span class="date">'+day+' Nov</span><span class="value '+tone(v)+'">'+amount(v)+'</span>';
         compact.appendChild(item);
       }
@@ -255,28 +256,33 @@
       let rangeStart = null;
       let rangeEnd = null;
       let holdTimer = null;
-      let longPressDate = null;
+      let holdPointerId = null;
+      let holdStarted = false;
       let suppressNextClick = false;
+      let pointerStartX = 0;
+      let pointerStartY = 0;
 
       function paintRange() {
+        const low = rangeStart && rangeEnd ? (rangeStart < rangeEnd ? rangeStart : rangeEnd) : rangeStart;
+        const high = rangeStart && rangeEnd ? (rangeStart < rangeEnd ? rangeEnd : rangeStart) : null;
         grid.querySelectorAll(".day-cell").forEach(cell => {
           const date = cell.dataset.date;
           cell.classList.remove("range-start", "range-end", "in-range");
           if (!rangeStart) return;
-          if (date === rangeStart) cell.classList.add("range-start");
-          if (rangeEnd && date === rangeEnd) cell.classList.add("range-end");
-          if (rangeEnd && date > rangeStart && date < rangeEnd) cell.classList.add("in-range");
+          if (date === low) cell.classList.add("range-start");
+          if (high && date === high) cell.classList.add("range-end");
+          if (high && date > low && date < high) cell.classList.add("in-range");
         });
       }
 
       function selectDate(date) {
-        if (rangeStart === null || rangeEnd !== null) {
+        if (!rangeStart || rangeEnd) {
           rangeStart = date;
           rangeEnd = null;
         } else if (date < rangeStart) {
           rangeEnd = rangeStart;
           rangeStart = date;
-        } else {
+        } else if (date > rangeStart) {
           rangeEnd = date;
         }
         paintRange();
@@ -304,43 +310,57 @@
           value.textContent = amount(values[date]);
           value.className = "value " + tone(values[date]);
         }
-        compact.querySelectorAll(".day-mini").forEach(item => {
-          if (item.querySelector(".date").textContent.trim().startsWith(String(Number(date.slice(-2))))) {
-            const value = item.querySelector(".value");
-            value.textContent = amount(values[date]);
-            value.className = "value " + tone(values[date]);
-          }
-        });
+        const mini = compact.querySelector('.day-mini[data-date="' + date + '"]');
+        if (mini) {
+          const value = mini.querySelector(".value");
+          value.textContent = amount(values[date]);
+          value.className = "value " + tone(values[date]);
+        }
       }
 
+      grid.addEventListener("contextmenu", event => event.preventDefault());
+      grid.addEventListener("selectstart", event => event.preventDefault());
       grid.addEventListener("pointerdown", event => {
-        const cell = event.target.closest(".day-cell");
-        if (!cell || !isExpanded()) return;
-        const date = cell.dataset.date;
+        const cell = event.target.closest(".day-cell[data-date]");
+        if (!cell || !isExpanded() || event.button !== 0) return;
+        holdPointerId = event.pointerId;
+        holdStarted = false;
         suppressNextClick = false;
+        pointerStartX = event.clientX;
+        pointerStartY = event.clientY;
+        const date = cell.dataset.date;
         holdTimer = window.setTimeout(() => {
-          longPressDate = date;
+          holdStarted = true;
           suppressNextClick = true;
           cell.classList.add("long-pressing");
           editDateAmount(date);
           cell.classList.remove("long-pressing");
-        }, 600);
+        }, 480);
       });
 
-      function stopHold() {
+      function finishPointer(event) {
+        if (holdPointerId !== event.pointerId) return;
         if (holdTimer !== null) window.clearTimeout(holdTimer);
         holdTimer = null;
-        grid.querySelectorAll(".long-pressing").forEach(cell => cell.classList.remove("long-pressing"));
+        holdPointerId = null;
       }
-      grid.addEventListener("pointerup", stopHold);
-      grid.addEventListener("pointercancel", stopHold);
-      grid.addEventListener("pointerleave", stopHold);
+      grid.addEventListener("pointerup", finishPointer);
+      grid.addEventListener("pointercancel", finishPointer);
+      grid.addEventListener("pointermove", event => {
+        if (holdPointerId !== event.pointerId || holdStarted) return;
+        if (Math.hypot(event.clientX - pointerStartX, event.clientY - pointerStartY) > 12) {
+          if (holdTimer !== null) window.clearTimeout(holdTimer);
+          holdTimer = null;
+        }
+      });
 
       grid.addEventListener("click", event => {
-        const cell = event.target.closest(".day-cell");
+        const cell = event.target.closest(".day-cell[data-date]");
         if (!cell || !isExpanded()) return;
         if (suppressNextClick) {
           suppressNextClick = false;
+          event.preventDefault();
+          event.stopPropagation();
           return;
         }
         selectDate(cell.dataset.date);
