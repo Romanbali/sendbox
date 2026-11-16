@@ -321,8 +321,10 @@
       grid.addEventListener("contextmenu", event => event.preventDefault());
       grid.addEventListener("selectstart", event => event.preventDefault());
       grid.addEventListener("pointerdown", event => {
-        const cell = event.target.closest(".day-cell[data-date]");
-        if (!cell || !isExpanded() || event.button !== 0) return;
+        // Editing is armed only when the press begins directly on the date number.
+        const number = event.target.closest(".num");
+        const cell = number && number.closest(".day-cell[data-date]");
+        if (!number || !cell || !isExpanded() || event.button !== 0) return;
         holdPointerId = event.pointerId;
         holdStarted = false;
         suppressNextClick = false;
