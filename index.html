@@ -245,67 +245,6 @@
         grid.appendChild(cell);
       }
 
-      let rangeStart = null, rangeEnd = null;
-      let pressTimer = null, longPressFired = false, activePressCell = null;
-
-      function refreshRange() {
-        grid.querySelectorAll(".day-cell").forEach(cell => {
-          const date = cell.dataset.date;
-          cell.classList.remove("range-start", "range-end", "in-range");
-          if (!rangeStart) return;
-          if (date === rangeStart) cell.classList.add("range-start");
-          if (rangeEnd && date === rangeEnd) cell.classList.add("range-end");
-          if (rangeEnd && date > rangeStart && date < rangeEnd) cell.classList.add("in-range");
-        });
-      }
-
-      function clearRange() {
-        rangeStart = null;
-        rangeEnd = null;
-        refreshRange();
-      }
-
-      function chooseDate(date) {
-        if (!rangeStart || rangeEnd) {
-          rangeStart = date;
-          rangeEnd = null;
-        } else if (date < rangeStart) {
-          rangeEnd = rangeStart;
-          rangeStart = date;
-        } else {
-          rangeEnd = date;
-        }
-        refreshRange();
-      }
-
-      function updateAmount(date, rawValue) {
-        const cleaned = String(rawValue).trim().replace(/[$,\\s]/g, "");
-        if (cleaned === "") return;
-        const parsed = Number(cleaned);
-        if (!Number.isFinite(parsed)) {
-          window.alert("Enter a valid number, for example 45 or -27.");
-          return;
-        }
-        const rounded = Math.round(parsed);
-        values[date] = rounded;
-        const cell = grid.querySelector('[data-date="' + date + '"]');
-        if (cell) {
-          const valueEl = cell.querySelector(".value");
-          valueEl.textContent = amount(rounded);
-          valueEl.className = "value " + tone(rounded);
-          cell.setAttribute("aria-label", new Date(date + "T12:00:00").toLocaleDateString("en-US", {month:"long",day:"numeric",year:"numeric"}) + ", " + amount(rounded));
-        }
-        const mini = compact.querySelectorAll(".day-mini");
-        mini.forEach(item => {
-          const day = Number(item.querySelector(".date").textContent);
-          if (date === "2026-11-" + pad(day)) {
-            const valueEl = item.querySelector(".value");
-            valueEl.textContent = amount(rounded);
-            valueEl.className = "value " + tone(rounded);
-          }
-        });
-      }
-
       function setExpanded(expanded) {
         card.setAttribute("aria-expanded", String(expanded));
         toggle.setAttribute("aria-expanded", String(expanded));
@@ -431,6 +370,7 @@
 
       // The expanded calendar stays open when tapped; tapping outside the card closes it.
       document.addEventListener("click", event => {
+        if (!grid.contains(event.target)) clearDateRange();
         if (isExpanded() && !card.contains(event.target)) setExpanded(false);
       });
       document.addEventListener("keydown", event => {
