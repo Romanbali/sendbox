@@ -310,7 +310,7 @@
         const high = rangeStart && rangeEnd ? (rangeStart < rangeEnd ? rangeEnd : rangeStart) : null;
         const status = document.getElementById("rangeStatus");
         if (status) {
-          if (!rangeStart) status.textContent = "Tap the first date, then tap the last date to select a range";
+          if (!rangeStart) status.textContent = "";
           else if (selectingRangeEnd) status.textContent = "Start: " + rangeStart + " — tap the end date";
           else status.textContent = "Selected: " + (rangeStart < rangeEnd ? rangeStart : rangeEnd) + " → " + (rangeStart < rangeEnd ? rangeEnd : rangeStart) + " — hold a date in the range to edit its amount";
         }
