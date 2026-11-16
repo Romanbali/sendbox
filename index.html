@@ -113,6 +113,20 @@
     .day-cell.future { opacity:.36; }
     .day-cell.today { border-color:rgba(244,237,22,.55); background:linear-gradient(145deg,#17170e,#10100b); box-shadow:inset 0 0 0 1px rgba(244,237,22,.08); }
     .day-cell.today .num { color:#fff; }
+    .day-cell { cursor:pointer; user-select:none; -webkit-user-select:none; touch-action:pan-y; }
+    .day-cell.range-start, .day-cell.range-end {
+      border-color:var(--yellow); background:var(--yellow); color:#080808;
+      box-shadow:0 0 0 1px rgba(244,237,22,.18), 0 3px 14px rgba(244,237,22,.12);
+      opacity:1;
+    }
+    .day-cell.range-start .num, .day-cell.range-end .num { color:#080808; font-weight:750; }
+    .day-cell.range-start .value, .day-cell.range-end .value { color:#080808 !important; }
+    .day-cell.in-range {
+      border-color:rgba(244,237,22,.32); background:rgba(244,237,22,.13);
+      border-radius:8px; opacity:1;
+    }
+    .day-cell.in-range .num { color:#fff; }
+    .day-cell.long-pressing { transform:scale(.97); border-color:var(--yellow); }
     .card[aria-expanded="true"] .compact { max-height:0; opacity:0; margin-top:0; transform:translateY(-8px); pointer-events:none; }
     .card[aria-expanded="true"] .calendar-wrap { grid-template-rows:1fr; opacity:1; transform:translateY(0); margin-top:0; }
     .card[aria-expanded="true"] .calendar-inner { animation:calendar-in .65s var(--ease) both; }
@@ -225,9 +239,71 @@
         const outside = d.getMonth() !== MONTH;
         const cell = document.createElement("div");
         cell.className = "day-cell" + (outside ? " outside" : "") + (isFuture(d) ? " future" : "") + (key(d) === key(TODAY) ? " today" : "");
+        cell.dataset.date = key(d);
         cell.setAttribute("aria-label", d.toLocaleDateString("en-US", {month:"long", day:"numeric", year:"numeric"}) + ", " + amount(v));
         cell.innerHTML = '<span class="num">'+d.getDate()+'</span><span class="value '+tone(v)+'">'+amount(v)+'</span>';
         grid.appendChild(cell);
+      }
+
+      let rangeStart = null, rangeEnd = null;
+      let pressTimer = null, longPressFired = false, activePressCell = null;
+
+      function refreshRange() {
+        grid.querySelectorAll(".day-cell").forEach(cell => {
+          const date = cell.dataset.date;
+          cell.classList.remove("range-start", "range-end", "in-range");
+          if (!rangeStart) return;
+          if (date === rangeStart) cell.classList.add("range-start");
+          if (rangeEnd && date === rangeEnd) cell.classList.add("range-end");
+          if (rangeEnd && date > rangeStart && date < rangeEnd) cell.classList.add("in-range");
+        });
+      }
+
+      function clearRange() {
+        rangeStart = null;
+        rangeEnd = null;
+        refreshRange();
+      }
+
+      function chooseDate(date) {
+        if (!rangeStart || rangeEnd) {
+          rangeStart = date;
+          rangeEnd = null;
+        } else if (date < rangeStart) {
+          rangeEnd = rangeStart;
+          rangeStart = date;
+        } else {
+          rangeEnd = date;
+        }
+        refreshRange();
+      }
+
+      function updateAmount(date, rawValue) {
+        const cleaned = String(rawValue).trim().replace(/[$,\\s]/g, "");
+        if (cleaned === "") return;
+        const parsed = Number(cleaned);
+        if (!Number.isFinite(parsed)) {
+          window.alert("Enter a valid number, for example 45 or -27.");
+          return;
+        }
+        const rounded = Math.round(parsed);
+        values[date] = rounded;
+        const cell = grid.querySelector('[data-date="' + date + '"]');
+        if (cell) {
+          const valueEl = cell.querySelector(".value");
+          valueEl.textContent = amount(rounded);
+          valueEl.className = "value " + tone(rounded);
+          cell.setAttribute("aria-label", new Date(date + "T12:00:00").toLocaleDateString("en-US", {month:"long",day:"numeric",year:"numeric"}) + ", " + amount(rounded));
+        }
+        const mini = compact.querySelectorAll(".day-mini");
+        mini.forEach(item => {
+          const day = Number(item.querySelector(".date").textContent);
+          if (date === "2026-11-" + pad(day)) {
+            const valueEl = item.querySelector(".value");
+            valueEl.textContent = amount(rounded);
+            valueEl.className = "value " + tone(rounded);
+          }
+        });
       }
 
       function setExpanded(expanded) {
