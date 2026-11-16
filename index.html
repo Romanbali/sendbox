@@ -390,8 +390,11 @@
       }
       function saveCalendarEdit() {
         const raw = editorAmount.value.trim(), number = Number(raw);
-        if (!rangeStart || !rangeEnd || selectingRangeEnd || !raw || !Number.isFinite(number)) { editorAmount.focus(); return; }
-        const days = dateKeysBetween(rangeStart, rangeEnd);
+        // A long-press opens the editor for one day. If no end date was
+        // selected, save that single day instead of silently doing nothing.
+        if (!rangeStart || !raw || !Number.isFinite(number)) { editorAmount.focus(); return; }
+        const endDate = selectingRangeEnd || !rangeEnd ? rangeStart : rangeEnd;
+        const days = dateKeysBetween(rangeStart, endDate);
         const previous = {};
         days.forEach(day => { previous[day] = values[day]; values[day] = Math.round(number * 100) / 100; });
         try {
@@ -497,6 +500,12 @@
 
       document.getElementById("editorCancel").addEventListener("click", closeCalendarEditor);
       document.getElementById("editorSave").addEventListener("click", saveCalendarEdit);
+      editorAmount.addEventListener("keydown", event => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          saveCalendarEdit();
+        }
+      });
       const isExpanded = () => card.getAttribute("aria-expanded") === "true";
       const toggleCalendar = () => setExpanded(!isExpanded());
 
