@@ -210,7 +210,7 @@
             <section class="editor-panel" id="calendarEditor" hidden>
               <div class="editor-title"><span>Изменить сумму</span><span id="editorRangeLabel"></span></div>
               <label for="editorAmount">Сумма для выбранного диапазона</label>
-              <input id="editorAmount" type="number" inputmode="decimal" step="1" placeholder="0">
+              <input id="editorAmount" type="number" inputmode="decimal" step="0.01" placeholder="0">
               <div class="editor-actions"><button type="button" id="editorCancel">Отмена</button><button type="button" class="save" id="editorSave">Сохранить сумму</button></div>
             </section>
           </div>
@@ -320,16 +320,31 @@
       }
 
       function selectDate(date) {
-        if (!editMode) return;
+        if (!editMode || !rangeStart) return;
+        // Match Romano Dashboard: the first tap chooses the end date.
+        // If the user taps before the start, that date becomes the new start.
         if (!selectingRangeEnd) {
           rangeStart = date;
           rangeEnd = date;
           selectingRangeEnd = true;
-        } else {
-          rangeEnd = date;
-          selectingRangeEnd = false;
-          updateEditorRange();
+          editorAmount.value = "";
+          editorRangeLabel.textContent = date + " — выбери конец";
+          paintRange();
+          return;
         }
+        if (date.slice(0, 7) !== rangeStart.slice(0, 7)) return;
+        if (date < rangeStart) {
+          rangeStart = date;
+          rangeEnd = date;
+          editorAmount.value = "";
+          editorRangeLabel.textContent = date + " — выбери конец";
+          paintRange();
+          return;
+        }
+        if (date === rangeStart) return;
+        rangeEnd = date;
+        selectingRangeEnd = false;
+        updateEditorRange();
         paintRange();
       }
 
@@ -370,10 +385,10 @@
       }
       function saveCalendarEdit() {
         const raw = editorAmount.value.trim(), number = Number(raw);
-        if (!rangeStart || !rangeEnd || !raw || !Number.isFinite(number)) { editorAmount.focus(); return; }
+        if (!rangeStart || !rangeEnd || selectingRangeEnd || !raw || !Number.isFinite(number)) { editorAmount.focus(); return; }
         const days = dateKeysBetween(rangeStart, rangeEnd);
         const previous = {};
-        days.forEach(day => { previous[day] = values[day]; values[day] = Math.round(number); });
+        days.forEach(day => { previous[day] = values[day]; values[day] = Math.round(number * 100) / 100; });
         try {
           localStorage.setItem(valuesStorageKey, JSON.stringify(values));
         } catch (error) {
@@ -402,21 +417,10 @@
 
       // Long press: use native touch events on phones and pointer events for mouse.
       function resolveLongPressTarget(target, source) {
+        if (source !== "grid" || editMode) return null;
         const el = target instanceof Element ? target : target && target.parentElement;
-        if (!el) return null;
-        const dateNumber = el.closest(source === "grid" ? ".num" : ".date");
-        const dateCell = dateNumber && dateNumber.closest(source === "grid" ? ".day-cell[data-date]" : ".day-mini[data-date]");
-        const amountNumber = source === "grid" ? el.closest(".value") : null;
-        const amountCell = amountNumber && amountNumber.closest(".day-cell[data-date]");
-        if (dateCell) {
-          const date = dateCell.dataset.date;
-          const low = rangeStart && rangeEnd ? (rangeStart < rangeEnd ? rangeStart : rangeEnd) : null;
-          const high = rangeStart && rangeEnd ? (rangeStart < rangeEnd ? rangeEnd : rangeStart) : null;
-          if (editMode && !selectingRangeEnd && low && date >= low && date <= high) return { cell: dateCell, date, kind: "amount" };
-          return { cell: dateCell, date, kind: "date" };
-        }
-        if (amountCell && editMode) return { cell: amountCell, date: amountCell.dataset.date, kind: "amount" };
-        return null;
+        const cell = el && el.closest(".day-cell[data-date]");
+        return cell ? { cell, date: cell.dataset.date, kind: "date" } : null;
       }
 
       function beginHold(target, source, x, y, pointerId) {
@@ -466,7 +470,6 @@
         });
       }
       attachLongPress(grid, "grid");
-      attachLongPress(compact, "compact");
 
       window.addEventListener("pointerup", event => cancelHold(event.pointerId), true);
       window.addEventListener("pointercancel", event => cancelHold(event.pointerId), true);
