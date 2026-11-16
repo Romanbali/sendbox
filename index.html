@@ -239,24 +239,27 @@
       const isExpanded = () => card.getAttribute("aria-expanded") === "true";
       const toggleCalendar = () => setExpanded(!isExpanded());
 
-      toggle.addEventListener("click", toggleCalendar);
-      document.getElementById("monthToggle").addEventListener("click", toggleCalendar);
-
-      // Any compact date opens the full month view.
-      compact.addEventListener("click", () => {
-        if (!isExpanded()) setExpanded(true);
+      // Dates in the compact strip open the full calendar.
+      compact.addEventListener("click", event => {
+        if (event.target.closest(".day-mini") && !isExpanded()) setExpanded(true);
       });
 
-      // The upper area acts as the close control while expanded.
-      const upperArea = document.querySelector(".topline");
-      upperArea.addEventListener("click", event => {
-        if (isExpanded() && event.target !== toggle) setExpanded(false);
+      // Tapping the month title opens when collapsed and closes when expanded.
+      const monthTitle = document.getElementById("monthToggle");
+      monthTitle.addEventListener("click", event => {
+        event.stopPropagation();
+        setExpanded(!isExpanded());
+      });
+
+      // While expanded, the top header and progress strip are close controls.
+      document.querySelector(".topline").addEventListener("click", () => {
+        if (isExpanded()) setExpanded(false);
       });
       document.querySelector(".progress").addEventListener("click", () => {
         if (isExpanded()) setExpanded(false);
       });
 
-      // Clicking the calendar body itself leaves it open; clicking outside the card closes it.
+      // The expanded calendar stays open when tapped; tapping outside the card closes it.
       document.addEventListener("click", event => {
         if (isExpanded() && !card.contains(event.target)) setExpanded(false);
       });
