@@ -312,6 +312,100 @@
         toggle.setAttribute("aria-label", expanded ? "Close full November calendar" : "Open full November calendar");
         panel.inert = !expanded;
       }
+      let rangeStart = null;
+      let rangeEnd = null;
+      let holdTimer = null;
+      let longPressDate = null;
+      let suppressNextClick = false;
+
+      function paintRange() {
+        grid.querySelectorAll(".day-cell").forEach(cell => {
+          const date = cell.dataset.date;
+          cell.classList.remove("range-start", "range-end", "in-range");
+          if (!rangeStart) return;
+          if (date === rangeStart) cell.classList.add("range-start");
+          if (rangeEnd && date === rangeEnd) cell.classList.add("range-end");
+          if (rangeEnd && date > rangeStart && date < rangeEnd) cell.classList.add("in-range");
+        });
+      }
+
+      function selectDate(date) {
+        if (rangeStart === null || rangeEnd !== null) {
+          rangeStart = date;
+          rangeEnd = null;
+        } else if (date < rangeStart) {
+          rangeEnd = rangeStart;
+          rangeStart = date;
+        } else {
+          rangeEnd = date;
+        }
+        paintRange();
+      }
+
+      function clearDateRange() {
+        rangeStart = null;
+        rangeEnd = null;
+        paintRange();
+      }
+
+      function editDateAmount(date) {
+        const current = values[date] ?? 0;
+        const input = window.prompt("Edit amount for " + date + " (negative number = loss):", String(current));
+        if (input === null || input.trim() === "") return;
+        const number = Number(input.replace(/[$,\\s]/g, ""));
+        if (!Number.isFinite(number)) {
+          window.alert("Please enter a valid number, such as 48 or -27.");
+          return;
+        }
+        values[date] = Math.round(number);
+        const cell = grid.querySelector('.day-cell[data-date="' + date + '"]');
+        if (cell) {
+          const value = cell.querySelector(".value");
+          value.textContent = amount(values[date]);
+          value.className = "value " + tone(values[date]);
+        }
+        compact.querySelectorAll(".day-mini").forEach(item => {
+          if (item.querySelector(".date").textContent.trim().startsWith(String(Number(date.slice(-2))))) {
+            const value = item.querySelector(".value");
+            value.textContent = amount(values[date]);
+            value.className = "value " + tone(values[date]);
+          }
+        });
+      }
+
+      grid.addEventListener("pointerdown", event => {
+        const cell = event.target.closest(".day-cell");
+        if (!cell || !isExpanded()) return;
+        const date = cell.dataset.date;
+        suppressNextClick = false;
+        holdTimer = window.setTimeout(() => {
+          longPressDate = date;
+          suppressNextClick = true;
+          cell.classList.add("long-pressing");
+          editDateAmount(date);
+          cell.classList.remove("long-pressing");
+        }, 600);
+      });
+
+      function stopHold() {
+        if (holdTimer !== null) window.clearTimeout(holdTimer);
+        holdTimer = null;
+        grid.querySelectorAll(".long-pressing").forEach(cell => cell.classList.remove("long-pressing"));
+      }
+      grid.addEventListener("pointerup", stopHold);
+      grid.addEventListener("pointercancel", stopHold);
+      grid.addEventListener("pointerleave", stopHold);
+
+      grid.addEventListener("click", event => {
+        const cell = event.target.closest(".day-cell");
+        if (!cell || !isExpanded()) return;
+        if (suppressNextClick) {
+          suppressNextClick = false;
+          return;
+        }
+        selectDate(cell.dataset.date);
+      });
+
       const isExpanded = () => card.getAttribute("aria-expanded") === "true";
       const toggleCalendar = () => setExpanded(!isExpanded());
 
