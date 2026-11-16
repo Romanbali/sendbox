@@ -193,7 +193,7 @@
       <section class="calendar-wrap" id="calendarPanel" aria-label="Full monthly calendar" inert>
         <div class="calendar-clip">
           <div class="calendar-inner">
-            <div class="range-status" id="rangeStatus" aria-live="polite">Tap the first date, then tap the last date to select a range</div>
+            <div class="range-status" id="rangeStatus" aria-live="polite">Hold a date to enter edit mode, then tap the first and last dates</div>
             <div class="weekdays" aria-hidden="true">
               <span class="weekday">Mon</span><span class="weekday">Tue</span><span class="weekday">Wed</span>
               <span class="weekday">Thu</span><span class="weekday">Fri</span><span class="weekday">Sat</span><span class="weekday">Sun</span>
@@ -312,27 +312,37 @@
       }
 
       function editDateAmount(date) {
+        const hasRange = rangeStart && rangeEnd;
+        const low = hasRange ? (rangeStart < rangeEnd ? rangeStart : rangeEnd) : date;
+        const high = hasRange ? (rangeStart < rangeEnd ? rangeEnd : rangeStart) : date;
+        const inRange = hasRange && date >= low && date <= high;
+        const targets = inRange ? Object.keys(values).filter(day => day >= low && day <= high) : [date];
         const current = values[date] ?? 0;
-        const input = window.prompt("Edit amount for " + date + " (negative number = loss):", String(current));
+        const label = inRange
+          ? "Set the same amount for all " + targets.length + " selected dates (" + low + " to " + high + "):"
+          : "Edit amount for " + date + " (negative number = loss):";
+        const input = window.prompt(label, String(current));
         if (input === null || input.trim() === "") return;
-        const number = Number(input.replace(/[$,\\s]/g, ""));
+        const number = Number(input.replace(/[$,\s]/g, ""));
         if (!Number.isFinite(number)) {
           window.alert("Please enter a valid number, such as 48 or -27.");
           return;
         }
-        values[date] = Math.round(number);
-        const cell = grid.querySelector('.day-cell[data-date="' + date + '"]');
-        if (cell) {
-          const value = cell.querySelector(".value");
-          value.textContent = amount(values[date]);
-          value.className = "value " + tone(values[date]);
-        }
-        const mini = compact.querySelector('.day-mini[data-date="' + date + '"]');
-        if (mini) {
-          const value = mini.querySelector(".value");
-          value.textContent = amount(values[date]);
-          value.className = "value " + tone(values[date]);
-        }
+        targets.forEach(day => {
+          values[day] = Math.round(number);
+          const cell = grid.querySelector('.day-cell[data-date="' + day + '"]');
+          if (cell) {
+            const value = cell.querySelector(".value");
+            value.textContent = amount(values[day]);
+            value.className = "value " + tone(values[day]);
+          }
+          const mini = compact.querySelector('.day-mini[data-date="' + day + '"]');
+          if (mini) {
+            const value = mini.querySelector(".value");
+            value.textContent = amount(values[day]);
+            value.className = "value " + tone(values[day]);
+          }
+        });
       }
 
       grid.addEventListener("contextmenu", event => event.preventDefault());
@@ -348,7 +358,13 @@
         const dateCell = dateNumber && dateNumber.closest(source === "grid" ? ".day-cell[data-date]" : ".day-mini[data-date]");
         const amountNumber = source === "grid" ? el.closest(".value") : null;
         const amountCell = amountNumber && amountNumber.closest(".day-cell[data-date]");
-        if (dateCell) return { cell: dateCell, date: dateCell.dataset.date, kind: "date" };
+        if (dateCell) {
+          const date = dateCell.dataset.date;
+          const low = rangeStart && rangeEnd ? (rangeStart < rangeEnd ? rangeStart : rangeEnd) : null;
+          const high = rangeStart && rangeEnd ? (rangeStart < rangeEnd ? rangeEnd : rangeStart) : null;
+          if (editMode && low && date >= low && date <= high) return { cell: dateCell, date, kind: "amount" };
+          return { cell: dateCell, date, kind: "date" };
+        }
         if (amountCell && editMode) return { cell: amountCell, date: amountCell.dataset.date, kind: "amount" };
         return null;
       }
@@ -423,7 +439,7 @@
           event.stopPropagation();
           return;
         }
-        selectDate(cell.dataset.date);
+        if (editMode) selectDate(cell.dataset.date);
       });
 
       const isExpanded = () => card.getAttribute("aria-expanded") === "true";
