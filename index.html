@@ -98,6 +98,7 @@
     .calendar-clip { min-height:0; overflow:hidden; }
     .calendar-inner { padding-top:28px; }
     .weekdays, .calendar-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:8px; }
+    .range-status { min-height:18px; margin:0 0 10px; color:var(--yellow); font-size:12px; letter-spacing:.02em; text-align:center; }
     .weekdays { margin-bottom:10px; }
     .weekday { text-align:center; color:#c6c6c6; font-size:15px; font-weight:550; padding:0 0 6px; }
     .calendar-grid { grid-auto-rows:minmax(88px,1fr); }
@@ -192,6 +193,7 @@
       <section class="calendar-wrap" id="calendarPanel" aria-label="Full monthly calendar" inert>
         <div class="calendar-clip">
           <div class="calendar-inner">
+            <div class="range-status" id="rangeStatus" aria-live="polite">Hold a date, then tap another date to select a range</div>
             <div class="weekdays" aria-hidden="true">
               <span class="weekday">Mon</span><span class="weekday">Tue</span><span class="weekday">Wed</span>
               <span class="weekday">Thu</span><span class="weekday">Fri</span><span class="weekday">Sat</span><span class="weekday">Sun</span>
@@ -260,7 +262,7 @@
       let holdTimer = null;
       let holdPointerId = null;
       let holdStarted = false;
-      let suppressNextClick = false;
+      let suppressClickUntil = 0;
       let pointerStartX = 0;
       let pointerStartY = 0;
       let editMode = false;
@@ -274,6 +276,12 @@
       function paintRange() {
         const low = rangeStart && rangeEnd ? (rangeStart < rangeEnd ? rangeStart : rangeEnd) : rangeStart;
         const high = rangeStart && rangeEnd ? (rangeStart < rangeEnd ? rangeEnd : rangeStart) : null;
+        const status = document.getElementById("rangeStatus");
+        if (status) {
+          if (!rangeStart) status.textContent = "Hold a date, then tap another date to select a range";
+          else if (!rangeEnd) status.textContent = "Start: " + rangeStart + " — tap the end date";
+          else status.textContent = "Selected: " + (rangeStart < rangeEnd ? rangeStart : rangeEnd) + " → " + (rangeStart < rangeEnd ? rangeEnd : rangeStart) + " — hold another date to start over";
+        }
         grid.querySelectorAll(".day-cell").forEach(cell => {
           const date = cell.dataset.date;
           cell.classList.remove("range-start", "range-end", "in-range");
@@ -351,12 +359,12 @@
         if (holdTimer !== null) window.clearTimeout(holdTimer);
         holdPointerId = pointerId;
         holdStarted = false;
-        suppressNextClick = false;
+        suppressClickUntil = 0;
         pointerStartX = x;
         pointerStartY = y;
         holdTimer = window.setTimeout(() => {
           holdStarted = true;
-          suppressNextClick = true;
+          suppressClickUntil = Date.now() + 900;
           info.cell.classList.add("long-pressing");
           if (info.kind === "date") {
             setEditMode(true);
@@ -409,8 +417,8 @@
       grid.addEventListener("click", event => {
         const cell = event.target.closest(".day-cell[data-date]");
         if (!cell || !isExpanded()) return;
-        if (suppressNextClick) {
-          suppressNextClick = false;
+        if (Date.now() < suppressClickUntil) {
+          suppressClickUntil = 0;
           event.preventDefault();
           event.stopPropagation();
           return;
