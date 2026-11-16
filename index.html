@@ -236,8 +236,30 @@
         toggle.setAttribute("aria-label", expanded ? "Close full November calendar" : "Open full November calendar");
         panel.inert = !expanded;
       }
-      toggle.addEventListener("click", () => setExpanded(card.getAttribute("aria-expanded") !== "true"));
-      document.getElementById("monthToggle").addEventListener("click", () => setExpanded(card.getAttribute("aria-expanded") !== "true"));
+      const isExpanded = () => card.getAttribute("aria-expanded") === "true";
+      const toggleCalendar = () => setExpanded(!isExpanded());
+
+      toggle.addEventListener("click", toggleCalendar);
+      document.getElementById("monthToggle").addEventListener("click", toggleCalendar);
+
+      // Any compact date opens the full month view.
+      compact.addEventListener("click", () => {
+        if (!isExpanded()) setExpanded(true);
+      });
+
+      // The upper area acts as the close control while expanded.
+      const upperArea = document.querySelector(".topline");
+      upperArea.addEventListener("click", event => {
+        if (isExpanded() && event.target !== toggle) setExpanded(false);
+      });
+      document.querySelector(".progress").addEventListener("click", () => {
+        if (isExpanded()) setExpanded(false);
+      });
+
+      // Clicking the calendar body itself leaves it open; clicking outside the card closes it.
+      document.addEventListener("click", event => {
+        if (isExpanded() && !card.contains(event.target)) setExpanded(false);
+      });
       document.addEventListener("keydown", event => {
         if (event.key === "Escape" && card.getAttribute("aria-expanded") === "true") {
           setExpanded(false); toggle.focus();
